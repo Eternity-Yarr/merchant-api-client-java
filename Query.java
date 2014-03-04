@@ -79,13 +79,15 @@ public class Query {
         int year = deviceTime.get(Calendar.YEAR);
         int hourOfDay = deviceTime.get(Calendar.HOUR_OF_DAY);
         int minutes = deviceTime.get(Calendar.MINUTE);
+        String m = (minutes < 10 ? "0" : "") + minutes;
+
         int seconds = deviceTime.get(Calendar.SECOND);
 
         return  dayweek + ", " +                                        // Tue
                 dayOfMonth + " " +                                      // 7
                 monthInYear + " " +                                     // Nov
                 year + " " +                                            // 2006
-                hourOfDay + ":" + minutes + ":" + seconds + " " +       // 14:13:26
+                hourOfDay + ":" + m + ":" + seconds + " " +             // 14:13:26
                 "+0400";                                                //FIXME: TZ +0400
     }
 
@@ -93,7 +95,9 @@ public class Query {
     {
 
         String d = dateToRfc2822(date);
-        con.setRequestProperty("X-WM-Authentication", Config.APP_ID.val + ":" + getHmac(content));
+        con.setRequestProperty("Accept", "application/json");
+        String hmac = Config.APP_ID.val + ":" + getHmac(content);
+        con.setRequestProperty("X-WM-Authentication", hmac.toLowerCase());
         con.setRequestProperty("X-WM-Date", d);
         return con;
     }
@@ -104,8 +108,11 @@ public class Query {
         Date date = new Date();
         try
         {
-            String content = "GET \n" + "d41d8cd98f00b204e9800998ecf8427e\n" + dateToRfc2822(date) + "\n" + "/api/1.0/orders";
-            String req = "/api/1.0/orders?status=opened";
+            String req = "/api/1.0/orders?pageSize=50&page=1";
+            String content = "GET\n" +
+                    "d41d8cd98f00b204e9800998ecf8427e\n" +  // md5 of empty string
+                    dateToRfc2822(date) + "\n" +
+                    req;
             URL url = new URL("http://merchant.wikimart.ru" + req);
 
             HttpURLConnection c = (HttpURLConnection) (url.openConnection());
@@ -114,10 +121,9 @@ public class Query {
             String line;
             while ((line = in.readLine())!= null)
             {
-                sb.append( line );
+                sb.append(line);
             }
             System.out.println(sb.toString());
-
         }
         catch (IOException e)
         {
